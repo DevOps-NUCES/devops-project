@@ -16,4 +16,4 @@ server:
 eureka:
     client:
         serviceUrl:
-            defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka/}
+            defaultZone: ${SERVICE_REGISTRY_SERIVICE_URL:http://localhost:8761/eureka/}
