@@ -11,11 +11,9 @@ spring:
             ddl-auto: update
 
 server:
-    port: 9070
+    port: ${ORDER_SERVICE_PORT:9070}
 
 eureka:
     client:
         serviceUrl:
-            defaultZone: http://localhost:8761/eureka/
-    instance:
-        hostname: localhost
+            defaultZone: ${EUREKA_SERVICE_URL:http://localhost:8761/eureka/}
