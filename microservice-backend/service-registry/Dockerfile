@@ -1,5 +1,6 @@
 # Stage 1: Build the application using Maven and JDK 21
-FROM maven:3.8.5-openjdk-21 AS builder
+FROM amazoncorretto:21-alpine-jdk AS builder
+RUN apk add maven
 WORKDIR /build
 # Copy only pom.xml first to leverage Docker cache
 COPY pom.xml .
@@ -11,7 +12,7 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # Stage 2: Create the runtime image using a slim JDK image
-FROM openjdk:21-jdk-slim
+FROM amazoncorretto:21-alpine-jdk
 # Expose the port your service-registry is configured to run on (default Eureka port is 8761)
 EXPOSE 8761
 # Copy the jar built in the previous stage
