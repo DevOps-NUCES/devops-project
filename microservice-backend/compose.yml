@@ -84,14 +84,41 @@ services:
   product-service:
     build:
       context: ./product-service
+      dockerfile: Dockerfile
+      args:
+        - PRODUCT_SERVICE_PORT=${PRODUCT_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+
+
     container_name: product-service
     restart: always
     ports:
       - "${PRODUCT_SERVICE_PORT}:${PRODUCT_SERVICE_PORT}"
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${PRODUCT_SERVICE_DB}
+    networks:
+      - microservice-network
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+      args:
+        - NOTIFICATION_SERVICE_PORT=${NOTIFICATION_SERVICE_PORT}
+        - SMTP_SERVER_URL=${SMTP_SERVER_URL}
+        - SMTP_SERVER_PORT=${SMTP_SERVER_PORT}
+        - EMAIL_USERNAME=${EMAIL_USERNAME}
+        - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+        - SERVICE_REGISTRY_HOSTNAME=${SERVICE_REGISTRY_HOSTNAME}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+    container_name: notification-service
+    restart: always
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
     depends_on:
-      - postgres
+      service-registry:
+        condition: service_healthy  
     networks:
       - microservice-network
 
@@ -106,6 +133,7 @@ services:
         - MONGODB_PORT=${MONGODB_PORT}
         - MONGODB_DATABASE=${MONGODB_DATABASE}
         - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+        - SERVICE_REGISTRY_HOSTNAME=${SERVICE_REGISTRY_HOSTNAME}
     ports:
       - ${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}
     depends_on:

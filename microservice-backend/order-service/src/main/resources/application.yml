@@ -5,7 +5,7 @@ spring:
         mongodb:
             host: ${MONGODB_HOST:127.0.0.1}
             port: ${MONGODB_PORT:27017}
-            database: ${MONGODB_DATABASE:purely_auth_service}
+            database: ${MONGODB_DATABASE:purely_order_service}
     jpa:
         hibernate:
             ddl-auto: update
