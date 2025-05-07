@@ -1,16 +1,83 @@
 services:
-  # User service
+  service-registry:
+    build:
+      context: ./service-registry
+      dockerfile: Dockerfile
+      args:
+        - SERVICE_REGISTRY_PORT=${SERVICE_REGISTRY_PORT}
+    ports:
+      - ${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${SERVICE_REGISTRY_PORT}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - microservice-network
+    
+  
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      args:
+        - API_GATEWAY_PORT=${API_GATEWAY_PORT}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+        - SERVICE_REGISTRY_HOSTNAME=${SERVICE_REGISTRY_HOSTNAME}
+    ports:
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    networks: 
+      - microservice-network
+
   user-service:
     build:
       context: ./user-service
-    container_name: user-service
-    restart: always
+      dockerfile: Dockerfile
+      args:
+        - USER_SERVICE_PORT=${USER_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
     ports:
-      - "8001:9050"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/user_db
+      - ${USER_SERVICE_PORT}:${USER_SERVICE_PORT}
     depends_on:
-      - postgres
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    networks: 
+      - microservice-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - microservice-network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
     networks:
       - microservice-network
 
@@ -47,26 +114,6 @@ services:
       - product-service
     networks:
       - microservice-network
-
-  # API Gateway
-  api-gateway:
-    build:
-      context: ./api-gateway
-    container_name: api-gateway
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - USER_SERVICE_URL=http://user-service:8000
-      - PRODUCT_SERVICE_URL=http://product-service:8000
-      - ORDER_SERVICE_URL=http://order-service:8000
-    depends_on:
-      - user-service
-      - product-service
-      - order-service
-    networks:
-      - microservice-network
-
   # Database service
   postgres:
     image: postgres:15
@@ -90,3 +137,4 @@ networks:
 
 volumes:
   postgres-data:
+  mongodb_data:
