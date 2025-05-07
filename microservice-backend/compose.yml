@@ -188,5 +188,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
   mongodb_data:
