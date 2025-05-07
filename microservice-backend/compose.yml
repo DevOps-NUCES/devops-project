@@ -99,34 +99,60 @@ services:
   order-service:
     build:
       context: ./order-service
-    container_name: order-service
-    restart: always
+      dockerfile: Dockerfile
+      args:
+        - ORDER_SERVICE_PORT=${ORDER_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
     ports:
-      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${PRODUCT_SERVICE_DB}
-      - USER_SERVICE_URL=http://user-service:${USER_SERVICE_PORT}
-      - PRODUCT_SERVICE_URL=http://product-service:${PRODUCT_SERVICE_PORT}
+      - ${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}
     depends_on:
-      - postgres
-      - user-service
-      - product-service
-    networks:
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    networks: 
       - microservice-network
-  # Database service
-  postgres:
-    image: postgres:latest
-    container_name: postgres
-    restart: always
-    environment:
-      - POSTGRES_USER=${POSTGRES_USERNAME}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_MULTIPLE_DATABASES=${POSTGRES_MULTIPLE_DATABASES}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+  #Category service
+  category-service:
+    build:
+      context: ./category-service
+      dockerfile: Dockerfile
+      args:
+        - CATEGORY_SERVICE_PORT=${CATEGORY_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
-    networks:
+      - ${CATEGORY_SERVICE_PORT}:${CATEGORY_SERVICE_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    networks: 
+      - microservice-network
+  cart-service:
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+      args:
+        - CART_SERVICE_PORT=${CART_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+    ports:
+      - ${CART_SERVICE_PORT}:${CART_SERVICE_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    networks: 
       - microservice-network
 
 networks:
