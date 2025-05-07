@@ -3,9 +3,9 @@ spring:
         name: auth-service
     data:
         mongodb:
-            host: 127.0.0.1
-            port: 27017
-            database: purely_auth_service
+            host: ${MONGODB_HOST:127.0.0.1}
+            port: ${MONGODB_PORT:27017}
+            database: ${MONGODB_DATABASE:purely_auth_service}
     jpa:
         hibernate:
             ddl-auto: update
