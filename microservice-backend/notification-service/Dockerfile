@@ -10,5 +10,5 @@ RUN mvn clean package -DskipTests
 FROM amazoncorretto:17-alpine-jdk
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-EXPOSE 9030
+EXPOSE 9020
 ENTRYPOINT ["java", "-jar", "app.jar"]
