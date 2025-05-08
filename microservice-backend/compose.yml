@@ -182,7 +182,20 @@ services:
         condition: service_started
     networks: 
       - microservice-network
-
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: frontend-app
+    ports:
+    - "5173:80"
+    environment:
+      APP_ENV_PREFIX: VITE_
+      PREFIX_VALUE: ""
+      VITE_API_BASE_URL: http://localhost:8080
+    depends_on:
+      service-registry:
+        condition: service_healthy
 networks:
   microservice-network:
     driver: bridge
