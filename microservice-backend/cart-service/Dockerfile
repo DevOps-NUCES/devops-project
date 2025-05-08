@@ -46,6 +46,6 @@ ENV MONGODB_DATABASE=purely_auth_service
 # Expose the port your service-registry is configured to run on (default Eureka port is 8761)
 EXPOSE ${CART_SERVICE_PORT}
 # Copy the jar built in the previous stage
-ARG JAR_FILE=/build/target/api-gateway-0.0.1-SNAPSHOT.jar
+ARG JAR_FILE=/build/target/cart-service-0.0.1-SNAPSHOT.jar
 COPY --from=builder ${JAR_FILE} app.jar
 ENTRYPOINT ["java", "-jar", "/app.jar"]
