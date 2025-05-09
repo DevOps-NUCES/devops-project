@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${API_GATEWAY_PORT:8080}
 
 spring:
   application:
@@ -68,10 +68,9 @@ spring:
             allowedMethods: '*'
             allowedHeaders: '*'
 
-
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${SERVICE_REGISTRY_SERVICE_URL:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    hostname: ${SERVICE_REGISTRY_HOSTNAME:localhost}

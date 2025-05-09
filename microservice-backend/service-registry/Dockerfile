@@ -1,5 +1,9 @@
 # Stage 1: Build the application using Maven and JDK 21
-FROM maven:3.8.5-openjdk-21 AS builder
+FROM amazoncorretto:21-alpine-jdk AS builder
+ARG SERVICE_REGISTRY_PORT=8761
+ENV SERVICE_REGISTRY_PORT=${SERVICE_REGISTRY_PORT}
+
+RUN apk add maven
 WORKDIR /build
 # Copy only pom.xml first to leverage Docker cache
 COPY pom.xml .
@@ -11,9 +15,12 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # Stage 2: Create the runtime image using a slim JDK image
-FROM openjdk:21-jdk-slim
+FROM amazoncorretto:21-alpine-jdk
 # Expose the port your service-registry is configured to run on (default Eureka port is 8761)
-EXPOSE 8761
+ARG SERVICE_REGISTRY_PORT=8761
+ENV SERVICE_REGISTRY_PORT=${SERVICE_REGISTRY_PORT}
+
+EXPOSE ${SERVICE_REGISTRY_PORT}
 # Copy the jar built in the previous stage
 ARG JAR_FILE=/build/target/service-registry-0.0.1-SNAPSHOT.jar
 COPY --from=builder ${JAR_FILE} app.jar
