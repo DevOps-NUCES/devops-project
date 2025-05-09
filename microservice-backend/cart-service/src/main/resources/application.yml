@@ -5,7 +5,10 @@ spring:
         mongodb:
             host: ${MONGODB_HOST:mongodb}
             port: ${MONGODB_PORT:27017}
-            database: ${MONGODB_DATABASE:purely_auth_service}
+            database: ${MONGODB_DATABASE:purely_cart_service}
+            username: ${MONGODB_USERNAME:admin}
+            password: ${MONGODB_PASSWORD:password}
+            authentication-database: ${MONGODB_AUTHSOURCE:admin}
     jpa:
         hibernate:
             ddl-auto: update
