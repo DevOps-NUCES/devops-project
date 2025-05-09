@@ -1,21 +1,33 @@
 services:
-  service-registry:
+
+   
+  auth-service:
+    container_name: auth-service
     build:
-      context: ./service-registry
+      context: ./auth-service
       dockerfile: Dockerfile
       args:
-        - SERVICE_REGISTRY_PORT=${SERVICE_REGISTRY_PORT}
+        - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${AUTH_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+        - SERVICE_REGISTRY_HOSTNAME=${AUTH_SERVICE_HOSTNAME}
     ports:
-      - ${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${SERVICE_REGISTRY_PORT}/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
+      - ${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks: 
       - microservice-network
-      
+  
   api-gateway:
+    container_name: api-gateway
     build:
       context: ./api-gateway
       dockerfile: Dockerfile
@@ -31,38 +43,87 @@ services:
     networks: 
       - microservice-network
 
-  user-service:
+  #Category service
+  category-service:
+    container_name: category-service
     build:
-      context: ./user-service
+      context: ./category-service
       dockerfile: Dockerfile
       args:
-        - USER_SERVICE_PORT=${USER_SERVICE_PORT}
+        - CATEGORY_SERVICE_PORT=${CATEGORY_SERVICE_PORT}
         - MONGODB_HOST=${MONGODB_HOST}
         - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - MONGODB_DATABASE=${CATEGORY_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
         - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
-        - SERVICE_REGISTRY_HOSTNAME=${USER_SERVICE_HOSTNAME}
+        - SERVICE_REGISTRY_HOSTNAME=${CATEGORY_SERVICE_HOSTNAME}
     ports:
-      - ${USER_SERVICE_PORT}:${USER_SERVICE_PORT}
+      - ${CATEGORY_SERVICE_PORT}:${CATEGORY_SERVICE_PORT}
     depends_on:
       service-registry:
         condition: service_healthy
       mongodb:
-        condition: service_started
+        condition: service_healthy
     networks: 
       - microservice-network
+  
+  cart-service:
+    container_name: cart-service
+    build:
+      context: ./cart-service
+      dockerfile: Dockerfile
+      args:
+        - CART_SERVICE_PORT=${CART_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${CART_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
+        - SERVICE_REGISTRY_HOSTNAME=${CART_SERVICE_HOSTNAME}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+    ports:
+      - ${CART_SERVICE_PORT}:${CART_SERVICE_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks: 
+      - microservice-network
+ 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: frontend-app
+    ports:
+    - ${FRONTEND_PORT}:80
+    environment:
+      APP_ENV_PREFIX: VITE_
+      PREFIX_VALUE: ""
+      VITE_API_BASE_URL: http://localhost:${API_GATEWAY_PORT}
+    depends_on:
+      service-registry:
+        condition: service_healthy
 
   mongodb:
     image: mongo:latest
     container_name: mongodb
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "\"db.adminCommand('ping')\""]
+      interval: 10s
+      timeout: 10s
+      retries: 3
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./init-data:/docker-entrypoint-initdb.d
     networks:
       - microservice-network
 
@@ -78,30 +139,13 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - mongodb
-    networks:
-      - microservice-network
-
-  # Product service
-  product-service:
-    build:
-      context: ./product-service
-      dockerfile: Dockerfile
-      args:
-        - PRODUCT_SERVICE_PORT=${PRODUCT_SERVICE_PORT}
-        - MONGODB_HOST=${MONGODB_HOST}
-        - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
-        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
-        - SERVICE_REGISTRY_HOSTNAME=${PRODUCT_SERVICE_HOSTNAME}
-    container_name: product-service
-    restart: always
-    ports:
-      - "${PRODUCT_SERVICE_PORT}:${PRODUCT_SERVICE_PORT}"
+      mongodb:
+        condition: service_healthy
     networks:
       - microservice-network
 
   notification-service:
+
     build:
       context: ./notification-service
       dockerfile: Dockerfile
@@ -125,6 +169,7 @@ services:
 
   # Order service
   order-service:
+    container_name: order-service
     build:
       context: ./order-service
       dockerfile: Dockerfile
@@ -132,7 +177,10 @@ services:
         - ORDER_SERVICE_PORT=${ORDER_SERVICE_PORT}
         - MONGODB_HOST=${MONGODB_HOST}
         - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - MONGODB_DATABASE=${ORDER_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
         - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
         - SERVICE_REGISTRY_HOSTNAME=${ORDER_SERVICE_HOSTNAME}
     ports:
@@ -141,85 +189,80 @@ services:
       service-registry:
         condition: service_healthy
       mongodb:
-        condition: service_started
+        condition: service_healthy
     networks: 
       - microservice-network
-  #Category service
-  category-service:
+  
+  # Product service
+  product-service:
+    container_name: product-service
     build:
-      context: ./category-service
+      context: ./product-service
       dockerfile: Dockerfile
       args:
-        - CATEGORY_SERVICE_PORT=${CATEGORY_SERVICE_PORT}
+        - PRODUCT_SERVICE_PORT=${PRODUCT_SERVICE_PORT}
         - MONGODB_HOST=${MONGODB_HOST}
         - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
+        - MONGODB_DATABASE=${PRODUCT_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
         - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
-        - SERVICE_REGISTRY_HOSTNAME=${CATEGORY_SERVICE_HOSTNAME}
+        - SERVICE_REGISTRY_HOSTNAME=${PRODUCT_SERVICE_HOSTNAME}
+    restart: always
     ports:
-      - ${CATEGORY_SERVICE_PORT}:${CATEGORY_SERVICE_PORT}
+      - "${PRODUCT_SERVICE_PORT}:${PRODUCT_SERVICE_PORT}"
+    networks:
+      - microservice-network
+    depends_on:
+      mongodb:
+       condition: service_healthy
+      service-registry:
+        condition: service_healthy
+
+  service-registry:
+    container_name: service-registry
+    build:
+      context: ./service-registry
+      dockerfile: Dockerfile
+      args:
+        - SERVICE_REGISTRY_PORT=${SERVICE_REGISTRY_PORT}
+    ports:
+      - ${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${SERVICE_REGISTRY_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+    networks:
+      - microservice-network
+
+  user-service:
+    container_name: user-service
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+      args:
+        - USER_SERVICE_PORT=${USER_SERVICE_PORT}
+        - MONGODB_HOST=${MONGODB_HOST}
+        - MONGODB_PORT=${MONGODB_PORT}
+        - MONGODB_DATABASE=${AUTH_DATABASE}
+        - MONGODB_USERNAME=${MONGODB_USERNAME}
+        - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+        - MONGODB_AUTHSOURCE=${MONGODB_AUTHSOURCE}
+        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
+        - SERVICE_REGISTRY_HOSTNAME=${USER_SERVICE_HOSTNAME}
+    ports:
+      - ${USER_SERVICE_PORT}:${USER_SERVICE_PORT}
     depends_on:
       service-registry:
         condition: service_healthy
       mongodb:
-        condition: service_started
+        condition: service_healthy
     networks: 
       - microservice-network
-  cart-service:
-    build:
-      context: ./cart-service
-      dockerfile: Dockerfile
-      args:
-        - CART_SERVICE_PORT=${CART_SERVICE_PORT}
-        - MONGODB_HOST=${MONGODB_HOST}
-        - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
-        - SERVICE_REGISTRY_HOSTNAME=${CART_SERVICE_HOSTNAME}
-        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
-        - SERVICE_REGISTRY_HOSTNAME=${SERVICE_REGISTRY_HOSTNAME}
-    ports:
-      - ${CART_SERVICE_PORT}:${CART_SERVICE_PORT}
-    depends_on:
-      service-registry:
-        condition: service_healthy
-      mongodb:
-        condition: service_started
-    networks: 
-      - microservice-network
-  auth-service:
-    build:
-      context: ./auth-service
-      dockerfile: Dockerfile
-      args:
-        - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT}
-        - MONGODB_HOST=${MONGODB_HOST}
-        - MONGODB_PORT=${MONGODB_PORT}
-        - MONGODB_DATABASE=${MONGODB_DATABASE}
-        - SERVICE_REGISTRY_SERVICE_URL=${SERVICE_REGISTRY_SERVICE_URL}
-        - SERVICE_REGISTRY_HOSTNAME=${SERVICE_REGISTRY_HOSTNAME}
-    ports:
-      - ${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}
-    depends_on:
-      service-registry:
-        condition: service_healthy
-      mongodb:
-        condition: service_started
-    networks: 
-      - microservice-network
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-    container_name: frontend-app
-    ports:
-    - ${FRONTEND_PORT}:80
-    environment:
-      APP_ENV_PREFIX: VITE_
-      PREFIX_VALUE: ""
-      VITE_API_BASE_URL: http://localhost:${API_GATEWAY_PORT}
-    depends_on:
-      service-registry:
-        condition: service_healthy
+
+
 networks:
   microservice-network:
     driver: bridge

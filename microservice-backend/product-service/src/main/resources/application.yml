@@ -6,6 +6,9 @@ spring:
             host: ${MONGODB_HOST:127.0.0.1}
             port: ${MONGODB_PORT:27017}
             database: ${MONGODB_DATABASE:purely_product_service}
+            username: ${MONGODB_USERNAME:admin}
+            password: ${MONGODB_PASSWORD:password}
+            authentication-database: ${MONGODB_AUTHSOURCE:admin}
     jpa:
         hibernate:
             ddl-auto: update
