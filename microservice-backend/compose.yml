@@ -104,7 +104,7 @@ services:
     environment:
       APP_ENV_PREFIX: VITE_
       PREFIX_VALUE: ""
-      VITE_API_BASE_URL: http://localhost:${API_GATEWAY_PORT}
+      VITE_API_BASE_URL: http://${DOMAIN_NAME}:${API_GATEWAY_PORT}
     depends_on:
       service-registry:
         condition: service_healthy
