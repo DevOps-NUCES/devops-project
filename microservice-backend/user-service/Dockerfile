@@ -1,7 +1,7 @@
 # Stage 1: Build the application using Maven and JDK 21
 FROM amazoncorretto:21-alpine-jdk AS builder
 
-ARG MONGODB_HOST=127.0.0.1
+ARG MONGODB_HOST=mongodb
 ARG MONGODB_PORT=27017
 ARG MONGODB_DATABASE=purely_auth_service
 ARG USER_SERVICE_PORT=9050
@@ -26,7 +26,7 @@ RUN mvn clean package -DskipTests
 # Stage 2: Create the runtime image using a slim JDK image
 FROM amazoncorretto:21-alpine-jdk
 
-ARG MONGODB_HOST=127.0.0.1
+ARG MONGODB_HOST=mongodb
 ARG MONGODB_PORT=27017
 ARG MONGODB_DATABASE=purely_auth_service
 ARG USER_SERVICE_PORT=9050
