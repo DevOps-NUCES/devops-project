@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: purely
+  labels:
+    app: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: microservice-backend-notification-service # Replace with your actual image name and tag
+          ports:
+            - containerPort: 9020
+          env:
+            - name: NOTIFICATION_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: NOTIFICATION_SERVICE_PORT
+            - name: SMTP_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: SMTP_SERVER_URL
+            - name: SMTP_SERVER_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: SMTP_SERVER_PORT
+            - name: EMAIL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: EMAIL_USERNAME
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: email-password
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: NOTIFICATION_SERVICE_HOSTNAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: purely
+  labels:
+    app: notification-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9020
+      targetPort: 9020
+  selector:
+    app: notification-service

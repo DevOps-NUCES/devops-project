@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: purely-config
+  namespace: purely
+  labels:
+    app: purely
+data:
+  API_GATEWAY_PORT: "8080"
+  API_GATEWAY_HOSTNAME: "api-gateway"
+  SERVICE_REGISTRY_SERVICE_URL: "http://service-registry:8761/eureka"
+  SERVICE_REGISTRY_HOSTNAME: "service-registry"
+  AUTH_SERVICE_HOSTNAME: "auth-service"
+  AUTH_SERVICE_PORT: "9030"
+  CART_SERVICE_PORT: "9000"
+  MONGODB_PORT: "27017"
+  MONGODB_HOST: "mongodb"
+  MONGODB_AUTHSOURCE: "admin"
+  CATEGORY_SERVICE_PORT: "9010"
+  CATEGORY_SERVICE_HOSTNAME: "category-service"
+  NOTIFICATION_SERVICE_HOSTNAME: "notification-service"
+  NOTIFICATION_SERVICE_PORT: "9020"

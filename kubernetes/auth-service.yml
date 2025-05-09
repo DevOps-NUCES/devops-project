@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: purely
+  labels:
+    app: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: microservice-backend-auth-service #############################
+          ports:
+            - containerPort: 9030
+          env:
+            - name: AUTH_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: AUTH_SERVICE_PORT
+              # value: "9030"
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_HOST
+            - name: MONGODB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_PORT
+            - name: MONGODB_DATABASE
+              value: "purely_auth_service"
+            - name: MONGODB_USERNAME
+              valueFrom:
+              secretKeyRef:
+                name: mongodb-secret
+                key: mongo-root-username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGODB_AUTHSOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_AUTHSOURCE
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+              # value: "http://service-registry:8761/eureka"
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: AUTH_SERVICE_HOSTNAME
+              # value: "auth-service"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: purely
+  labels:
+    app: auth-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9030
+      targetPort: 9030
+  selector:
+    app: auth-service

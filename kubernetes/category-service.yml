@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: category-service
+  namespace: purely
+  labels:
+    app: category-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: category-service
+  template:
+    metadata:
+      labels:
+        app: category-service
+    spec:
+      containers:
+        - name: category-service
+          image: microservice-backend-category-service ##############################
+          ports:
+            - containerPort: 9060
+          env:
+            - name: CATEGORY_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: CATEGORY_SERVICE_PORT
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_HOST
+            - name: MONGODB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_PORT
+            - name: MONGODB_DATABASE
+              value: "purely_category_service"
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGODB_AUTHSOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_AUTHSOURCE
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: CATEGORY_SERVICE_HOSTNAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: category-service
+  namespace: purely
+  labels:
+    app: category-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9060
+      targetPort: 9060
+  selector:
+    app: category-service
