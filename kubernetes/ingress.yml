@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx 
   rules:
-    - host: frontend.local 
+    - host: purely.com 
       http:
         paths:
           - path: /
@@ -19,3 +19,25 @@ spec:
                 name: frontend
                 port:
                   number: 80
+    
+    - host: eureka.purely.com 
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: service-registry
+                port:
+                  number: 8761
+
+    - host: api.purely.com 
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080

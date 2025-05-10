@@ -6,6 +6,9 @@ metadata:
   labels:
     app: purely
 data:
+  # BACKEND_DOMAIN
+  BACKEND_DOMAIN : "http://api.purely.com"
+
   # PORTS
   API_GATEWAY_PORT : "8080"
   AUTH_SERVICE_PORT : "9030"
