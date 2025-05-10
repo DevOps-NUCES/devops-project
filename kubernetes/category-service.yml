@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: category-service
-          image: microservice-backend-category-service ##############################
+          image: registry.xcelerate.systems/devops-project/category-service:latest ##############################
           ports:
             - containerPort: 9060
           env:

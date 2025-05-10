@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: microservice-backend-api-gateway #############################
+          image: registry.xcelerate.systems/devops-project/api-gateway:latest #############################
           ports:
             - containerPort: 8080
           env:

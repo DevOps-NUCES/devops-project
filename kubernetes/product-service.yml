@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: purely
+  labels:
+    app: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: registry.xcelerate.systems/devops-project/product-service:latest # Replace with your actual image name and tag
+          ports:
+            - containerPort: 9010
+          env:
+            - name: PRODUCT_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: PRODUCT_SERVICE_PORT
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_HOST
+            - name: MONGODB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_PORT
+            - name: MONGODB_DATABASE
+              value: "purely_product_service"
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGODB_AUTHSOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_AUTHSOURCE
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: PRODUCT_SERVICE_HOSTNAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: purely
+  labels:
+    app: product-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9010
+      targetPort: 9010
+  selector:
+    app: product-service

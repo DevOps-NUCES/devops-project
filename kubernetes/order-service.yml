@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: purely
+  labels:
+    app: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: registry.xcelerate.systems/devops-project/order-service:latest # Replace with your actual image name and tag
+          ports:
+            - containerPort: 9070
+          env:
+            - name: ORDER_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: ORDER_SERVICE_PORT
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_HOST
+            - name: MONGODB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_PORT
+            - name: MONGODB_DATABASE
+              value: "purely_order_service"
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGODB_AUTHSOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_AUTHSOURCE
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: ORDER_SERVICE_HOSTNAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: purely
+  labels:
+    app: order-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9070
+      targetPort: 9070
+  selector:
+    app: order-service

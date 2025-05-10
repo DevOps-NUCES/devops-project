@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: cart-service
-          image: microservice-backend-cart-service ##############################
+          image: registry.xcelerate.systems/devops-project/cart-service:latest ##############################
           ports:
             - containerPort: 9000
           env:

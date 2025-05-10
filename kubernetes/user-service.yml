@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: purely
+  labels:
+    app: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: registry.xcelerate.systems/devops-project/user-service:latest # Replace with your actual image name and tag
+          ports:
+            - containerPort: 9050
+          env:
+            - name: USER_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: USER_SERVICE_PORT
+            - name: MONGODB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_HOST
+            - name: MONGODB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_PORT
+            - name: MONGODB_DATABASE
+              value: "purely_user_service"
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGODB_AUTHSOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: MONGODB_AUTHSOURCE
+            - name: SERVICE_REGISTRY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: SERVICE_REGISTRY_SERVICE_URL
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: USER_SERVICE_HOSTNAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: purely
+  labels:
+    app: user-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9050
+      targetPort: 9050
+  selector:
+    app: user-service

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: microservice-backend-auth-service #############################
+          image: registry.xcelerate.systems/devops-project/auth-service:latest #############################
           ports:
             - containerPort: 9030
           env:
