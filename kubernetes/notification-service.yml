@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: microservice-backend-notification-service # Replace with your actual image name and tag
+          image: registry.xcelerate.systems/devops-project/notification-service:latest #################################
           ports:
             - containerPort: 9020
           env:
