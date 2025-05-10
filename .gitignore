@@ -32,3 +32,8 @@ target/
 !**/src/test/**/target/
 
 /**/.env
+
+
+# KUBERNETES
+/kubernetes/secrets.yaml
+/kubernetes/script-*.sh
