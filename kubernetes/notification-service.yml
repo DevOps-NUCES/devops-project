@@ -45,7 +45,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: email-secret
-                  key: email-password
+                  key: EMAIL_PASSWORD
             - name: SERVICE_REGISTRY_SERVICE_URL
               valueFrom:
                 configMapKeyRef:

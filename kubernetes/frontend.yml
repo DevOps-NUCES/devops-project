@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: purely
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: registry.xcelerate.systems/devops-project/frontend:latest # Replace with your actual image name and tag
+          ports:
+            - containerPort: 80
+          env:
+            - name: VITE_API_BASE_URL
+              value: "http://api-gateway:8080"
+            - name: APP_ENV_PREFIX
+              value: "VITE_"
+            - name: PREFIX_VALUE
+              value: ""
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: purely
+  labels:
+    app: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: frontend

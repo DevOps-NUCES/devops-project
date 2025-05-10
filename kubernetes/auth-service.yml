@@ -41,9 +41,9 @@ spec:
               value: "purely_auth_service"
             - name: MONGODB_USERNAME
               valueFrom:
-              secretKeyRef:
-                name: mongodb-secret
-                key: mongo-root-username
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
             - name: MONGODB_PASSWORD
               valueFrom:
                 secretKeyRef:
