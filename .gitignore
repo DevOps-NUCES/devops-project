@@ -36,3 +36,4 @@ target/
 
 # KUBERNETES
 /kubernetes/secrets.yaml
+/kubernetes/script-*.sh
