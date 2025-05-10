@@ -1,0 +1,89 @@
+name: Microservices CI/CD
+on:
+  push:
+    paths:
+      - frontend/**
+      - microservice-backend/**
+      
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set.outputs.services }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: set
+        run: |
+          changed_services=()
+          for dir in frontend microservice-backend/*; do
+            if git diff --quiet HEAD~1 HEAD -- "$dir"; then
+              continue
+            fi
+            name=$(basename "$dir")
+            changed_services+=("$name")
+          done
+          echo "Detected services: ${changed_services[@]}"
+          echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
+
+  # build-and-push:
+  #   needs: detect-changes
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Set Short Commit ID
+  #       run: echo "COMMIT_ID=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+  #     - name: Log in to Nexus
+  #       run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login your-nexus.example.com -u ${{ secrets.NEXUS_USERNAME }} --password-stdin
+
+  #     - name: Build & Push Docker Image
+  #       run: |
+  #         if [ "${{ matrix.service }}" = "frontend" ]; then
+  #           docker build -t your-nexus.example.com/frontend:${{ env.COMMIT_ID }} ./frontend
+  #           docker push your-nexus.example.com/frontend:${{ env.COMMIT_ID }}
+  #         else
+  #           docker build -t your-nexus.example.com/${{ matrix.service }}:${{ env.COMMIT_ID }} ./microservice-backend/${{ matrix.service }}
+  #           docker push your-nexus.example.com/${{ matrix.service }}:${{ env.COMMIT_ID }}
+  #         fi
+
+  # update-manifests:
+  #   needs: [build-and-push, detect-changes]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Update Kubernetes YAML
+  #       run: |
+  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
+  #           yml_file="kubernetes/${service}.yml"
+  #           if [ -f "$yml_file" ]; then
+  #             sed -i "s|\(your-nexus\.example\.com/${service}:\).*|\1${{ github.sha::7 }}|g" "$yml_file"
+  #           fi
+  #         done
+
+  #     - name: Commit Changes
+  #       uses: EndBug/add-and-commit@v9
+  #       with:
+  #         message: "Update image tags for changed services - commit ${{ github.sha::7 }}"
+
+  # deploy:
+  #   needs: update-manifests
+  #   runs-on: self-hosted
+  #   steps:
+  #     - name: Install Argo CD CLI
+  #       run: |
+  #         curl -sSL -o argocd https://my-argocd-server.argocd/download/argocd-linux-amd64
+  #         chmod +x argocd && sudo mv argocd /usr/local/bin/argocd
+
+  #     - name: Login and Sync Argo CD
+  #       run: |
+  #         argocd login my-argocd-server.argocd --insecure --grpc-web --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
+  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
+  #           argocd app sync ${service}
+  #         done
+
