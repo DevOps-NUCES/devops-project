@@ -6,26 +6,68 @@ on:
       - microservice-backend/**
       
 jobs:
+  # WAS WORKING WHEN TESTED
+  # detect-changes:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     services: ${{ steps.set.outputs.services }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - id: set
+  #       run: |
+  #         changed_services=()
+  #         for dir in frontend microservice-backend/*; do
+  #           # Only include if it's a directory and contains a Dockerfile
+  #           if [ ! -d "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
+  #             continue
+  #           fi
+
+  #           # Check if directory has changed
+  #           if git diff --quiet origin/main -- "$dir"; then
+  #             continue
+  #           fi
+
+  #           name=$(basename "$dir")
+  #           changed_services+=("$name")
+  #         done
+
+  #         echo "Detected services: ${changed_services[@]}"
+  #         echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.set.outputs.services }}
+      matrix: ${{ steps.filter.outputs.changed }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # important for diff to work
 
-      - id: set
-        run: |
-          changed_services=()
-          for dir in frontend microservice-backend/*; do
-            if git diff --quiet HEAD~1 HEAD -- "$dir"; then
-              continue
-            fi
-            name=$(basename "$dir")
-            changed_services+=("$name")
-          done
-          echo "Detected services: ${changed_services[@]}"
-          echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
-
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            api-gateway:
+              - 'microservice-backend/api-gateway/**'
+            auth-service:
+              - 'microservice-backend/auth-service/**'
+            cart-service:
+              - 'microservice-backend/cart-service/**'
+            category-service:
+              - 'microservice-backend/category-service/**'
+            notification-service:
+              - 'microservice-backend/notification-service/**'
+            order-service:
+              - 'microservice-backend/order-service/**'
+            product-service:
+              - 'microservice-backend/product-service/**'
+            service-registry:
+              - 'microservice-backend/service-registry/**'
+            user-service:
+              - 'microservice-backend/user-service/**'
+          
   # build-and-push:
   #   needs: detect-changes
   #   runs-on: ubuntu-latest
