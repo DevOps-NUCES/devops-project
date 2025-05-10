@@ -6,23 +6,39 @@ metadata:
   labels:
     app: purely
 data:
-  API_GATEWAY_PORT: "8080"
-  API_GATEWAY_HOSTNAME: "api-gateway"
+  # PORTS
+  API_GATEWAY_PORT : "8080"
+  AUTH_SERVICE_PORT : "9030"
+  USER_SERVICE_PORT : "9050"
+  PRODUCT_SERVICE_PORT : "9010"
+  ORDER_SERVICE_PORT : "9070"
+  NOTIFICATION_SERVICE_PORT : "9020"
+  CATEGORY_SERVICE_PORT : "9060"
+  CART_SERVICE_PORT : "9000"
+  FRONTEND_PORT : "3000"
+
+  # SERVICE-HOSTNAMEs
+  API_GATEWAY_HOSTNAME : "api-gateway"
+  AUTH_SERVICE_HOSTNAME : "auth-service"
+  USER_SERVICE_HOSTNAME : "user-service"
+  PRODUCT_SERVICE_HOSTNAME : "product-service"
+  NOTIFICATION_SERVICE_HOSTNAME : "notification-service"
+  ORDER_SERVICE_HOSTNAME : "order-service"
+  CATEGORY_SERVICE_HOSTNAME : "category-service"
+  CART_SERVICE_HOSTNAME : "cart-service"
+
+  #DATABASES
+  AUTH_DATABASE : "purely_auth_service"
+  CART_DATABASE : "purely_cart_service"
+  CATEGORY_DATABASE : "purely_category_service"
+  ORDER_DATABASE : "purely_order_service"
+  PRODUCT_DATABASE : "purely_product_service"
+
+  #EUREKA 
   SERVICE_REGISTRY_SERVICE_URL: "http://service-registry:8761/eureka"
   SERVICE_REGISTRY_HOSTNAME: "service-registry"
-  AUTH_SERVICE_HOSTNAME: "auth-service"
-  AUTH_SERVICE_PORT: "9030"
-  CART_SERVICE_PORT: "9000"
+  SERVICE_REGISTRY_PORT : "8761"
+  
   MONGODB_PORT: "27017"
   MONGODB_HOST: "mongodb"
   MONGODB_AUTHSOURCE: "admin"
-  CATEGORY_SERVICE_PORT: "9010"
-  CATEGORY_SERVICE_HOSTNAME: "category-service"
-  NOTIFICATION_SERVICE_HOSTNAME: "notification-service"
-  NOTIFICATION_SERVICE_PORT: "9020"
-  ORDER_SERVICE_PORT: "9070"
-  ORDER_SERVICE_HOSTNAME: "order-service"
-  PRODUCT_SERVICE_PORT: "9040"
-  PRODUCT_SERVICE_HOSTNAME: "product-service"
-  USER_SERVICE_PORT: "9060"
-  USER_SERVICE_HOSTNAME: "user-service"
