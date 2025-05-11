@@ -1,6 +1,8 @@
 name: Microservices CI/CD
 on:
   push:
+    branches:
+      - main
     paths:
       - frontend/**
       - microservice-backend/**
