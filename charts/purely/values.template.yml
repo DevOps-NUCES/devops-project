@@ -1,11 +1,8 @@
 global:
   registry: registry.xcelerate.systems
   repository: devops-project
-  # This will be used as fallback if service-specific tag is not set
   defaultImageTag: latest
-
 namespace: purely
-
 mongodb:
   auth:
     rootUser: "${MONGODB_USERNAME}"
@@ -15,11 +12,9 @@ mongodb:
   port: 27017
   initData:
     enabled: true
-    # Init script configuration
     initScript:
       name: init-mongo.js
       configMapKey: init-mongo.js
-    # Sample data configuration  
     sampleData:
       products:
         name: products.json
@@ -27,11 +22,10 @@ mongodb:
       categories:
         name: categories.json
         configMapKey: categories.json
-
 api:
   domain: api.purely.com
   gateway:
-    imageTag: ""  # Will use global.defaultImageTag if empty
+    imageTag: ""
     port: 8080
     replicas: 1
     resources:
@@ -41,9 +35,8 @@ api:
       limits:
         memory: "1Gi"
         cpu: "500m"
-
 serviceRegistry:
-  imageTag: ""  # Will use global.defaultImageTag if empty
+  imageTag: ""
   port: 8761
   replicas: 1
   resources:
@@ -53,10 +46,9 @@ serviceRegistry:
     limits:
       memory: "1Gi"
       cpu: "500m"
-
 services:
   auth:
-    imageTag: ""  # Will use global.defaultImageTag if empty
+    imageTag: ""
     port: 9030
     replicas: 1
   user:
@@ -83,19 +75,16 @@ services:
     imageTag: ""
     port: 9000
     replicas: 1
-
 frontend:
-  imageTag: ""  # Will use global.defaultImageTag if empty
+  imageTag: "abcdefg"
   domain: purely.com
   port: 80
   replicas: 1
-
 ingress:
   className: nginx
-  annotations: 
+  annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-
 email:
   smtp:
     server: "${SMTP_SERVER}"
