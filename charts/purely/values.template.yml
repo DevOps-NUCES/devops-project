@@ -5,8 +5,8 @@ global:
 namespace: purely
 mongodb:
   auth:
-    rootUser: "${MONGODB_USERNAME}"
-    rootPassword: "${MONGODB_PASSWORD}"
+    rootUser: "admin"
+    rootPassword: "password"
   persistence:
     size: 1Gi
   port: 27017
