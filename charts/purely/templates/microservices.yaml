@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: {{ $name }}-service
-          image: {{ $.Values.global.registry }}/{{ $.Values.global.repository }}/{{ $name }}-service:{{ $.Values.global.imageTag }}
+          image: {{ $.Values.global.registry }}/{{ $.Values.global.repository }}/{{ $name }}-service:{{ default $.Values.global.defaultImageTag $config.imageTag }}
           ports:
             - containerPort: {{ $config.port }}
           env:

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: service-registry
-        image: {{ .Values.global.registry }}/{{ .Values.global.repository }}/service-registry:{{ .Values.global.imageTag }}
+        image: {{ .Values.global.registry }}/{{ .Values.global.repository }}/service-registry:{{ default .Values.global.defaultImageTag .Values.serviceRegistry.imageTag }}
         env:
           - name: SERVICE_REGISTRY_PORT
             valueFrom:

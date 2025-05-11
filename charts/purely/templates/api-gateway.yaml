@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: {{ .Values.global.registry }}/{{ .Values.global.repository }}/api-gateway:{{ .Values.global.imageTag }}
+          image: {{ .Values.global.registry }}/{{ .Values.global.repository }}/api-gateway:{{ default .Values.global.defaultImageTag .Values.api.gateway.imageTag }}
           ports:
             - containerPort: {{ .Values.api.gateway.port }}
           resources:
