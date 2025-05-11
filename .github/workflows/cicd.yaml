@@ -1,9 +1,14 @@
 name: Microservices CI/CD
 on:
   push:
+    branches:
+      - main
     paths:
       - frontend/**
       - microservice-backend/**
+    # manual trigger
+  workflow_dispatch:
+  
       
 jobs:
   detect-changes:
@@ -40,7 +45,6 @@ jobs:
               - 'microservice-backend/service-registry/**'
             user-service:
               - 'microservice-backend/user-service/**'
-
       - id: set-matrix
         run: |
           # Convert the changes to an array
@@ -80,7 +84,6 @@ jobs:
           JSON_ARRAY=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -sc .)
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
           echo "Changed services: $JSON_ARRAY"
-
   build-and-push:
     needs: detect-changes
     if: needs.detect-changes.outputs.matrix != '[""]'
@@ -135,20 +138,23 @@ jobs:
     steps:
       - name: Checkout the Repo
         uses: actions/checkout@v4
+        with: 
+          ref: gitops 
 
       - name: Install yq
-        run: pip install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Update image tags in values.template.yml
         run: |
           COMMIT_ID=${GITHUB_SHA::7}
-          UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
-
-          # Create gitops branch
-          git checkout gitops
+          # Parse the JSON array into a bash array
+          readarray -t SERVICES < <(echo '${{ needs.detect-changes.outputs.matrix }}' | jq -r '.[]')
+          
           cd charts/purely
-
-          for svc in $UPDATED_SERVICES; do
+          for svc in "${SERVICES[@]}"; do
+            echo "Updating service: $svc"
             # Remove -service suffix and handle special cases
             case "$svc" in
               frontend)
@@ -163,7 +169,6 @@ jobs:
                 yq -i ".services.\"$SERVICE_NAME\".imageTag = \"$COMMIT_ID\"" values.template.yml ;;
             esac
           done
-
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
@@ -171,30 +176,53 @@ jobs:
 
       
       - name: Render values.yaml from HCP secrets
+        shell: bash
         run: |
-          echo "🔐 Getting HCP API token..."
-          HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
+          cd charts/purely
+          
+          echo "Installing envsubst..."
+          sudo apt-get update && sudo apt-get install -y gettext
+          
+          echo "Getting HCP API token..."
+          TOKEN=$(curl --fail --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
             --header "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "client_id=$HCP_CLIENT_ID" \
-            --data-urlencode "client_secret=$HCP_CLIENT_SECRET" \
+            --data-urlencode "client_id=${HCP_CLIENT_ID}" \
+            --data-urlencode "client_secret=${HCP_CLIENT_SECRET}" \
             --data-urlencode "grant_type=client_credentials" \
             --data-urlencode "audience=https://api.hashicorp.cloud" | jq -r .access_token)
+          
+          if [ -z "${TOKEN}" ]; then
+            echo "Failed to get token"
+            exit 1
+          fi
+        
+          echo "Fetching secrets..."
+          MONGODB_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          MONGODB_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_SERVER=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_SERVER:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PORT=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PORT:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
 
-          get_secret() {
-            curl --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/$HCP_ORG/projects/$HCP_PROJECT/apps/$HCP_APP/secrets/$1:open" \
-              --header "Authorization: Bearer $HCP_API_TOKEN" | jq -r .secret.value
-          }
-
-          echo "📦 Fetching secrets..."
-          export MONGODB_USERNAME=$(get_secret "MONGODB_USERNAME")
-          export MONGODB_PASSWORD=$(get_secret "MONGODB_PASSWORD")
-          export SMTP_SERVER=$(get_secret "SMTP_SERVER")
-          export SMTP_PORT=$(get_secret "SMTP_PORT")
-          export SMTP_USERNAME=$(get_secret "SMTP_USERNAME")
-          export SMTP_PASSWORD=$(get_secret "SMTP_PASSWORD")
-
-          echo "📝 Rendering values.yaml..."
+          
+          # Verify all variables are set
+          if [ -z "${MONGODB_USERNAME}" ] || [ -z "${MONGODB_PASSWORD}" ] || \
+             [ -z "${SMTP_SERVER}" ] || [ -z "${SMTP_PORT}" ] || \
+             [ -z "${SMTP_USERNAME}" ] || [ -z "${SMTP_PASSWORD}" ]; then
+            echo "Error: One or more secrets could not be retrieved"
+            exit 1
+          fi
+          
+          echo "Rendering values.yaml..."
           envsubst < values.template.yml > values.yaml
+          
+          # Verify the output
+          if [ ! -s values.yaml ]; then
+            echo "Error: values.yaml is empty or was not created"
+            exit 1
+          fi
+          
+          echo "Successfully rendered values.yaml"
   
 
       - name: Install ArgoCD CLI
@@ -203,15 +231,34 @@ jobs:
           curl -ksSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           chmod +x argocd
           sudo mv ./argocd /usr/local/bin/argocd
-
-      - name: ArgoCD App Sync
+      - name: ArgoCD Cli login
         shell: bash
-        run: |
+        run: |          
           argocd login ${{secrets.ARGOCD_URL}} \
             --insecure  \
             --grpc-web \
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
-          argocd app sync purely
+      
+      - name: Install Helm
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+      - name: Debug argocd
+        shell: bash
+        run: | 
+          helm template charts/purely -f charts/purely/values.yaml --debug
+
+
+      - name: Update values.yaml in ArgoCD
+        shell: bash
+        run: | 
+          argocd app set purely --values-literal-file charts/purely/values.yaml  
+        # run: argocd app set purely --values-literal-file charts/purely/values.yaml --path charts/purely --repo ${{ secrets.ARGOCD_REPO_URL }} --revision gitops --dest-namespace purely --dest-server https://kubernetes.default.svc
+          
+      - name: ArgoCD App Sync
+        shell: bash
+        run: |
+          argocd app sync purely
 
