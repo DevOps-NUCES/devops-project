@@ -126,7 +126,7 @@ jobs:
   cd:
     name: Deploy Application using ArgoCD
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
