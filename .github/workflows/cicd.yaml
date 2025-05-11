@@ -176,9 +176,9 @@ jobs:
       - name: Render values.yaml from HCP secrets
         run: |
           cd charts/purely
-          echo "🔐 Installing envsubst..."
+          echo "Installing envsubst..."
           sudo apt-get update && sudo apt-get install -y gettext
-          echo "🔐 Getting HCP API token..."
+          echo "Getting HCP API token..."
           HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
             --header "Content-Type: application/x-www-form-urlencoded" \
             --data-urlencode "client_id=$HCP_CLIENT_ID" \
@@ -191,7 +191,7 @@ jobs:
               --header "Authorization: Bearer $HCP_API_TOKEN" | jq -r .secret.value
           }
 
-          echo "📦 Fetching secrets..."
+          echo " Fetching secrets..."
           export MONGODB_USERNAME=$(get_secret "MONGODB_USERNAME")
           export MONGODB_PASSWORD=$(get_secret "MONGODB_PASSWORD")
           export SMTP_SERVER=$(get_secret "SMTP_SERVER")
@@ -199,7 +199,7 @@ jobs:
           export SMTP_USERNAME=$(get_secret "SMTP_USERNAME")
           export SMTP_PASSWORD=$(get_secret "SMTP_PASSWORD")
 
-          echo "📝 Rendering values.yaml..."
+          echo "Rendering values.yaml..."
           envsubst < values.template.yml > values.yaml
   
 
@@ -216,7 +216,7 @@ jobs:
           ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
           VALUES: ${{ steps.read_values.outputs.values }}
         run: |
-          echo "🔐 Getting Argo CD token..."
+          echo " Getting Argo CD token..."
           TOKEN=$(curl -s -k -X POST "$ARGOCD_URL/api/v1/session" \
             -H "Content-Type: application/json" \
             -d "{\"username\":\"$ARGOCD_USERNAME\",\"password\":\"$ARGOCD_PASSWORD\"}" | jq -r .token)
@@ -226,7 +226,7 @@ jobs:
             exit 1
           fi
 
-          echo "🛠️ Patching Helm values inline..."
+          echo " Patching Helm values inline..."
           curl -s -k -X PATCH "$ARGOCD_URL/api/v1/applications/purely" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
@@ -240,12 +240,12 @@ jobs:
               }
             }"
 
-          echo "🔄 Syncing application..."
+          echo " Syncing application..."
           curl -s -k -X POST "$ARGOCD_URL/api/v1/applications/purely/sync" \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json"
 
-          echo "✅ Sync triggered successfully."
+          echo " Sync triggered successfully."
 
  
 
