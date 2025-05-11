@@ -126,7 +126,7 @@ jobs:
   cd:
     name: Deploy Application using ArgoCD
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
@@ -147,7 +147,8 @@ jobs:
           UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
 
           # Create gitops branch
-          git checkout -b gitops origin/gitops
+          git fetch 
+          git checkout gitops
           cd charts/purely
 
           for svc in $UPDATED_SERVICES; do
