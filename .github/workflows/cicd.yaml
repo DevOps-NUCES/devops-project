@@ -218,9 +218,14 @@ jobs:
             --grpc-web \
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
-
-          argocd app set purely --helm-set-file --values charts/purely/values.yaml
-          argocd app sync purely
+      
+      - name: ArgoCD App Set
+        shell: bash
+        run: argocd app set purely --helm-set-file --values charts/purely/values.yaml
+          
+      - name: ArgoCD App Sync
+        shell: bash
+        run: argocd app sync purely
  
 
 
