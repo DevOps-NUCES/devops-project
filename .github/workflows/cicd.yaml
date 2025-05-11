@@ -6,49 +6,19 @@ on:
       - microservice-backend/**
       
 jobs:
-  # WAS WORKING WHEN TESTED
-  # detect-changes:
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     services: ${{ steps.set.outputs.services }}
-  #   steps:
-  #     - uses: actions/checkout@v3
-
-  #     - id: set
-  #       run: |
-  #         changed_services=()
-  #         for dir in frontend microservice-backend/*; do
-  #           # Only include if it's a directory and contains a Dockerfile
-  #           if [ ! -d "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
-  #             continue
-  #           fi
-
-  #           # Check if directory has changed
-  #           if git diff --quiet origin/main -- "$dir"; then
-  #             continue
-  #           fi
-
-  #           name=$(basename "$dir")
-  #           changed_services+=("$name")
-  #         done
-
-  #         echo "Detected services: ${changed_services[@]}"
-  #         echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
-  
-  # DETECT CHANGES USING dorny/paths-filter
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.filter.outputs.changed }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # important for diff to work
+          fetch-depth: 0
 
       - uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: 'main'
+          base: main
           filters: |
             frontend:
               - 'frontend/**'
@@ -70,15 +40,60 @@ jobs:
               - 'microservice-backend/service-registry/**'
             user-service:
               - 'microservice-backend/user-service/**'
-    
-              
+
+      - id: set-matrix
+        run: |
+          # Convert the changes to an array
+          SERVICES=()
+          if [[ "${{ steps.filter.outputs.frontend }}" == "true" ]]; then
+            SERVICES+=("frontend")
+          fi
+          if [[ "${{ steps.filter.outputs.api-gateway }}" == "true" ]]; then
+            SERVICES+=("api-gateway")
+          fi
+          if [[ "${{ steps.filter.outputs.auth-service }}" == "true" ]]; then
+            SERVICES+=("auth-service")
+          fi
+          if [[ "${{ steps.filter.outputs.cart-service }}" == "true" ]]; then
+            SERVICES+=("cart-service")
+          fi
+          if [[ "${{ steps.filter.outputs.category-service }}" == "true" ]]; then
+            SERVICES+=("category-service")
+          fi
+          if [[ "${{ steps.filter.outputs.notification-service }}" == "true" ]]; then
+            SERVICES+=("notification-service")
+          fi
+          if [[ "${{ steps.filter.outputs.order-service }}" == "true" ]]; then
+            SERVICES+=("order-service")
+          fi
+          if [[ "${{ steps.filter.outputs.product-service }}" == "true" ]]; then
+            SERVICES+=("product-service")
+          fi
+          if [[ "${{ steps.filter.outputs.service-registry }}" == "true" ]]; then
+            SERVICES+=("service-registry")
+          fi
+          if [[ "${{ steps.filter.outputs.user-service }}" == "true" ]]; then
+            SERVICES+=("user-service")
+          fi
+          
+          # Create JSON array for matrix
+          JSON_ARRAY=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -sc .)
+          echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+          echo "Changed services: $JSON_ARRAY"
+
   build-and-push:
     needs: detect-changes
+    if: needs.detect-changes.outputs.matrix != '[""]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        service: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+        # service: ["product-service", "auth-service", "category-service", ]
     steps:
+      - name: Debug detect-changes output
+        run: echo "${{ needs.detect-changes.outputs.matrix }}"
+
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -94,6 +109,9 @@ jobs:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.NEXUS_USERNAME }}
           password: ${{ secrets.NEXUS_PASSWORD }}
+      
+      - name: Debug Matrix Service
+        run: echo "Matrix Service:${{ matrix.service }}"
 
       - name: Build & Push Docker image
         uses: docker/build-push-action@v5
@@ -107,50 +125,93 @@ jobs:
     name: Deploy Application using ArgoCD
     needs: build-and-push
     runs-on: self-hosted
+    env:
+      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+      HCP_ORG: ${{ secrets.HCP_ORG }}
+      HCP_PROJECT: ${{ secrets.HCP_PROJECT }}
+      HCP_APP: ${{ secrets.HCP_APP }}
+
     steps:
       - name: Checkout the Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install yq
         run: pip install yq
 
-      - name: Update image tags in values.yaml
+      - name: Update image tags in values.template.yml
         run: |
-          COMMIT_ID=${{ needs.build-and-push.outputs.commit_id }}
-          UPDATED_SERVICES=$(echo '${{ needs.build-and-push.outputs.updated_services }}' | jq -r '.[]')
+          COMMIT_ID=${GITHUB_SHA::7}
+          UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
+
+          # Create gitops branch
+          git checkout gitops
+          cd charts/purely
 
           for svc in $UPDATED_SERVICES; do
+            # Remove -service suffix and handle special cases
             case "$svc" in
               frontend)
-                yq -i '.frontend.imageTag = "'$COMMIT_ID'"' values.yaml ;;
+                yq -i '.frontend.imageTag = "'$COMMIT_ID'"' values.template.yml ;;
               api-gateway)
-                yq -i '.api.gateway.imageTag = "'$COMMIT_ID'"' values.yaml ;;
+                yq -i '.api.gateway.imageTag = "'$COMMIT_ID'"' values.template.yml ;;
               service-registry)
-                yq -i '.serviceRegistry.imageTag = "'$COMMIT_ID'"' values.yaml ;;
-              *)
-                yq -i ".services.\"$svc\".imageTag = \"$COMMIT_ID\"" values.yaml ;;
+                yq -i '.serviceRegistry.imageTag = "'$COMMIT_ID'"' values.template.yml ;;
+              *-service)
+                # Extract service name without -service suffix
+                SERVICE_NAME=${svc%-service}
+                yq -i ".services.\"$SERVICE_NAME\".imageTag = \"$COMMIT_ID\"" values.template.yml ;;
             esac
           done
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
-          message: 'Update image tags to ${{ needs.build-and-push.outputs.commit_id }} for changed services'
+          message: 'Updates values.template.yml with commit ${{needs.ci.outputs.commit_id}}'
+
+      
+      - name: Render values.yaml from HCP secrets
+        run: |
+          echo "🔐 Getting HCP API token..."
+          HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=$HCP_CLIENT_ID" \
+            --data-urlencode "client_secret=$HCP_CLIENT_SECRET" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "audience=https://api.hashicorp.cloud" | jq -r .access_token)
+
+          get_secret() {
+            curl --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/$HCP_ORG/projects/$HCP_PROJECT/apps/$HCP_APP/secrets/$1:open" \
+              --header "Authorization: Bearer $HCP_API_TOKEN" | jq -r .secret.value
+          }
+
+          echo "📦 Fetching secrets..."
+          export MONGODB_USERNAME=$(get_secret "MONGODB_USERNAME")
+          export MONGODB_PASSWORD=$(get_secret "MONGODB_PASSWORD")
+          export SMTP_SERVER=$(get_secret "SMTP_SERVER")
+          export SMTP_PORT=$(get_secret "SMTP_PORT")
+          export SMTP_USERNAME=$(get_secret "SMTP_USERNAME")
+          export SMTP_PASSWORD=$(get_secret "SMTP_PASSWORD")
+
+          echo "📝 Rendering values.yaml..."
+          envsubst < values.template.yml > values.yaml
+  
 
       - name: Install ArgoCD CLI
+        shell: bash
         run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          curl -ksSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           chmod +x argocd
-          sudo mv argocd /usr/local/bin/argocd
+          sudo mv ./argocd /usr/local/bin/argocd
 
-      - name: Sync ArgoCD apps
-        env:
-          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+      - name: ArgoCD App Sync
+        shell: bash
         run: |
-          argocd login my-argocd-server.argocd \
-            --insecure --grpc-web \
-            --username admin \
-            --password $ARGOCD_PASSWORD
+          argocd login ${{secrets.ARGOCD_URL}} \
+            --insecure  \
+            --grpc-web \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password  ${{ secrets.ARGOCD_PASSWORD }}
+          argocd app sync purely
 
-          # Example: sync the whole project or specific apps if needed
-          argocd app sync purely-app
+
