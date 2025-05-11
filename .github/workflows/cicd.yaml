@@ -34,6 +34,8 @@ jobs:
 
   #         echo "Detected services: ${changed_services[@]}"
   #         echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
+  
+  # DETECT CHANGES USING dorny/paths-filter
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -46,6 +48,7 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: filter
         with:
+          base: ${{ github.ref_name || 'main' }}
           filters: |
             frontend:
               - 'frontend/**'
@@ -67,31 +70,39 @@ jobs:
               - 'microservice-backend/service-registry/**'
             user-service:
               - 'microservice-backend/user-service/**'
-          
-  # build-and-push:
-  #   needs: detect-changes
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       service: ${{ fromJson(needs.detect-changes.outputs.services) }}
-  #   steps:
-  #     - uses: actions/checkout@v3
+    
+              
+  build-and-push:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services || '["user-service"]' ) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  #     - name: Set Short Commit ID
-  #       run: echo "COMMIT_ID=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Set Short Commit ID
+        run: echo "COMMIT_ID=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
-  #     - name: Log in to Nexus
-  #       run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login your-nexus.example.com -u ${{ secrets.NEXUS_USERNAME }} --password-stdin
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  #     - name: Build & Push Docker Image
-  #       run: |
-  #         if [ "${{ matrix.service }}" = "frontend" ]; then
-  #           docker build -t your-nexus.example.com/frontend:${{ env.COMMIT_ID }} ./frontend
-  #           docker push your-nexus.example.com/frontend:${{ env.COMMIT_ID }}
-  #         else
-  #           docker build -t your-nexus.example.com/${{ matrix.service }}:${{ env.COMMIT_ID }} ./microservice-backend/${{ matrix.service }}
-  #           docker push your-nexus.example.com/${{ matrix.service }}:${{ env.COMMIT_ID }}
-  #         fi
+      - name: Log in to Nexus
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service == 'frontend' && 'frontend' || format('microservice-backend/{0}', matrix.service) }}
+          push: true
+          tags: ${{ secrets.REGISTRY_URL }}${{ secrets.REPOSITORY_NAME }}/${{ matrix.service }}:${{ env.COMMIT_ID }}
+
+
 
   # update-manifests:
   #   needs: [build-and-push, detect-changes]
