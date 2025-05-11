@@ -5,8 +5,8 @@ global:
 namespace: purely
 mongodb:
   auth:
-    rootUser: "admin"
-    rootPassword: "password"
+    rootUser: "${MONGODB_USERNAME}"
+    rootPassword: "${MONGODB_PASSWORD}"
   persistence:
     size: 1Gi
   port: 27017
@@ -76,7 +76,7 @@ services:
     port: 9000
     replicas: 1
 frontend:
-  imageTag: "abcdefg"
+  imageTag: ""
   domain: purely.com
   port: 80
   replicas: 1
