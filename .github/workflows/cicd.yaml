@@ -2,7 +2,7 @@ name: Microservices CI/CD
 on:
   push:
     branches:
-      - main
+      - testing
     paths:
       - frontend/**
       - microservice-backend/**
@@ -20,7 +20,7 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: main
+          base: testing
           filters: |
             frontend:
               - 'frontend/**'
@@ -137,6 +137,8 @@ jobs:
     steps:
       - name: Checkout the Repo
         uses: actions/checkout@v4
+        with:
+          ref: gitops
 
       - name: Install yq
         run: pip install yq
@@ -147,8 +149,6 @@ jobs:
           UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
 
           # Create gitops branch
-          git fetch 
-          git checkout gitops
           cd charts/purely
 
           for svc in $UPDATED_SERVICES; do
@@ -175,6 +175,9 @@ jobs:
       
       - name: Render values.yaml from HCP secrets
         run: |
+          cd charts/purely
+          echo "🔐 Installing envsubst..."
+          apt-get update && apt-get install -y gettext
           echo "🔐 Getting HCP API token..."
           HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
             --header "Content-Type: application/x-www-form-urlencoded" \
@@ -215,6 +218,8 @@ jobs:
             --grpc-web \
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
+          argocd app set purely --helm-set-file values=charts/purely/values.yaml
           argocd app sync purely
+ 
 
 
