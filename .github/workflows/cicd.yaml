@@ -137,6 +137,8 @@ jobs:
     steps:
       - name: Checkout the Repo
         uses: actions/checkout@v4
+        with:
+          ref: gitops
 
       - name: Install yq
         run: pip install yq
@@ -147,7 +149,6 @@ jobs:
           UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
 
           # Create gitops branch
-          git checkout -b gitops origin/gitops
           cd charts/purely
 
           for svc in $UPDATED_SERVICES; do
@@ -174,6 +175,9 @@ jobs:
       
       - name: Render values.yaml from HCP secrets
         run: |
+          cd charts/purely
+          echo "🔐 Installing envsubst..."
+          sudo apt-get update && sudo apt-get install -y gettext
           echo "🔐 Getting HCP API token..."
           HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
             --header "Content-Type: application/x-www-form-urlencoded" \
@@ -214,6 +218,8 @@ jobs:
             --grpc-web \
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
+          argocd app set purely --helm-set-file values=charts/purely/values.yaml
           argocd app sync purely
+ 
 
 
