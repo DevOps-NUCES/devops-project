@@ -138,8 +138,8 @@ jobs:
     steps:
       - name: Checkout the Repo
         uses: actions/checkout@v4
-        with:
-          ref: gitops
+        with: 
+          ref: gitops 
 
       - name: Install yq
         run: |
