@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: purely-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: purely
+data:
+  # BACKEND_DOMAIN
+  BACKEND_DOMAIN: "http://{{ .Values.api.domain }}"
+
+  # PORTS
+  API_GATEWAY_PORT: "{{ .Values.api.gateway.port }}"
+  AUTH_SERVICE_PORT: "{{ .Values.services.auth.port }}"
+  USER_SERVICE_PORT: "{{ .Values.services.user.port }}"
+  PRODUCT_SERVICE_PORT: "{{ .Values.services.product.port }}"
+  ORDER_SERVICE_PORT: "{{ .Values.services.order.port }}"
+  NOTIFICATION_SERVICE_PORT: "{{ .Values.services.notification.port }}"
+  CATEGORY_SERVICE_PORT: "{{ .Values.services.category.port }}"
+  CART_SERVICE_PORT: "{{ .Values.services.cart.port }}"
+  
+  # SERVICE-HOSTNAMEs
+  API_GATEWAY_HOSTNAME: "api-gateway"
+  AUTH_SERVICE_HOSTNAME: "auth-service"
+  USER_SERVICE_HOSTNAME: "user-service"
+  PRODUCT_SERVICE_HOSTNAME: "product-service"
+  NOTIFICATION_SERVICE_HOSTNAME: "notification-service"
+  ORDER_SERVICE_HOSTNAME: "order-service"
+  CATEGORY_SERVICE_HOSTNAME: "category-service"
+  CART_SERVICE_HOSTNAME: "cart-service"
+
+  # DATABASES
+  AUTH_DATABASE: "purely_auth_service"
+  CART_DATABASE: "purely_cart_service"
+  CATEGORY_DATABASE: "purely_category_service"
+  ORDER_DATABASE: "purely_order_service"
+  PRODUCT_DATABASE: "purely_product_service"
+
+  # EUREKA
+  SERVICE_REGISTRY_SERVICE_URL: "http://service-registry:{{ .Values.serviceRegistry.port }}/eureka"
+  SERVICE_REGISTRY_HOSTNAME: "service-registry"
+  SERVICE_REGISTRY_PORT: "{{ .Values.serviceRegistry.port }}"
+
+  MONGODB_PORT: "{{ .Values.mongodb.port }}"
+  MONGODB_HOST: "mongodb"
+  MONGODB_AUTHSOURCE: "admin"

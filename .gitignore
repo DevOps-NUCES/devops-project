@@ -40,3 +40,4 @@ target/
 
 #WORKFLOWS
 .secrets
+charts/**/*values*.yaml
