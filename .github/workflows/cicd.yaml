@@ -45,7 +45,6 @@ jobs:
               - 'microservice-backend/service-registry/**'
             user-service:
               - 'microservice-backend/user-service/**'
-
       - id: set-matrix
         run: |
           # Convert the changes to an array
@@ -85,7 +84,6 @@ jobs:
           JSON_ARRAY=$(printf '%s\n' "${SERVICES[@]}" | jq -R . | jq -sc .)
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
           echo "Changed services: $JSON_ARRAY"
-
   build-and-push:
     needs: detect-changes
     if: needs.detect-changes.outputs.matrix != '[""]'
@@ -150,10 +148,8 @@ jobs:
         run: |
           COMMIT_ID=${GITHUB_SHA::7}
           UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
-
           # Create gitops branch
           cd charts/purely
-
           for svc in $UPDATED_SERVICES; do
             # Remove -service suffix and handle special cases
             case "$svc" in
@@ -169,7 +165,6 @@ jobs:
                 yq -i ".services.\"$SERVICE_NAME\".imageTag = \"$COMMIT_ID\"" values.template.yml ;;
             esac
           done
-
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
@@ -188,12 +183,10 @@ jobs:
             --data-urlencode "client_secret=$HCP_CLIENT_SECRET" \
             --data-urlencode "grant_type=client_credentials" \
             --data-urlencode "audience=https://api.hashicorp.cloud" | jq -r .access_token)
-
           get_secret() {
             curl --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/$HCP_ORG/projects/$HCP_PROJECT/apps/$HCP_APP/secrets/$1:open" \
               --header "Authorization: Bearer $HCP_API_TOKEN" | jq -r .secret.value
           }
-
           echo " Fetching secrets..."
           export MONGODB_USERNAME=$(get_secret "MONGODB_USERNAME")
           export MONGODB_PASSWORD=$(get_secret "MONGODB_PASSWORD")
@@ -201,7 +194,6 @@ jobs:
           export SMTP_PORT=$(get_secret "SMTP_PORT")
           export SMTP_USERNAME=$(get_secret "SMTP_USERNAME")
           export SMTP_PASSWORD=$(get_secret "SMTP_PASSWORD")
-
           echo "Rendering values.yaml..."
           envsubst < values.template.yml > values.yaml
   
@@ -212,7 +204,6 @@ jobs:
           curl -ksSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           chmod +x argocd
           sudo mv ./argocd /usr/local/bin/argocd
-
       - name: ArgoCD Cli login
         shell: bash
         run: |          
@@ -224,12 +215,10 @@ jobs:
       
       - name: Update values.yaml in ArgoCD
         shell: bash
-        run: argocd app set purely --values-literal-file charts/purely/values.yaml 
+        run: argocd app set purely --values-literal-file charts/purely/values.yaml --debug 
         # run: argocd app set purely --values-literal-file charts/purely/values.yaml --path charts/purely --repo ${{ secrets.ARGOCD_REPO_URL }} --revision gitops --dest-namespace purely --dest-server https://kubernetes.default.svc
           
       - name: ArgoCD App Sync
         shell: bash
         run: argocd app sync purely
  
-
-
