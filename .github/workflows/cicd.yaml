@@ -103,40 +103,54 @@ jobs:
           tags: ${{ secrets.REGISTRY_URL }}${{ secrets.REPOSITORY_NAME }}/${{ matrix.service }}:${{ env.COMMIT_ID }}
 
 
+  cd:
+    name: Deploy Application using ArgoCD
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+      - name: Checkout the Repo
+        uses: actions/checkout@v3
 
-  # update-manifests:
-  #   needs: [build-and-push, detect-changes]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
+      - name: Install yq
+        run: pip install yq
 
-  #     - name: Update Kubernetes YAML
-  #       run: |
-  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
-  #           yml_file="kubernetes/${service}.yml"
-  #           if [ -f "$yml_file" ]; then
-  #             sed -i "s|\(your-nexus\.example\.com/${service}:\).*|\1${{ github.sha::7 }}|g" "$yml_file"
-  #           fi
-  #         done
+      - name: Update image tags in values.yaml
+        run: |
+          COMMIT_ID=${{ needs.build-and-push.outputs.commit_id }}
+          UPDATED_SERVICES=$(echo '${{ needs.build-and-push.outputs.updated_services }}' | jq -r '.[]')
 
-  #     - name: Commit Changes
-  #       uses: EndBug/add-and-commit@v9
-  #       with:
-  #         message: "Update image tags for changed services - commit ${{ github.sha::7 }}"
+          for svc in $UPDATED_SERVICES; do
+            case "$svc" in
+              frontend)
+                yq -i '.frontend.imageTag = "'$COMMIT_ID'"' values.yaml ;;
+              api-gateway)
+                yq -i '.api.gateway.imageTag = "'$COMMIT_ID'"' values.yaml ;;
+              service-registry)
+                yq -i '.serviceRegistry.imageTag = "'$COMMIT_ID'"' values.yaml ;;
+              *)
+                yq -i ".services.\"$svc\".imageTag = \"$COMMIT_ID\"" values.yaml ;;
+            esac
+          done
 
-  # deploy:
-  #   needs: update-manifests
-  #   runs-on: self-hosted
-  #   steps:
-  #     - name: Install Argo CD CLI
-  #       run: |
-  #         curl -sSL -o argocd https://my-argocd-server.argocd/download/argocd-linux-amd64
-  #         chmod +x argocd && sudo mv argocd /usr/local/bin/argocd
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: 'Update image tags to ${{ needs.build-and-push.outputs.commit_id }} for changed services'
 
-  #     - name: Login and Sync Argo CD
-  #       run: |
-  #         argocd login my-argocd-server.argocd --insecure --grpc-web --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
-  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
-  #           argocd app sync ${service}
-  #         done
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/argocd
 
+      - name: Sync ArgoCD apps
+        env:
+          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+        run: |
+          argocd login my-argocd-server.argocd \
+            --insecure --grpc-web \
+            --username admin \
+            --password $ARGOCD_PASSWORD
+
+          # Example: sync the whole project or specific apps if needed
+          argocd app sync purely-app
