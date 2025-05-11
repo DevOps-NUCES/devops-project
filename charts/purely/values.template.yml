@@ -8,8 +8,8 @@ namespace: purely
 
 mongodb:
   auth:
-    rootUser: ${MONGODB_USERNAME}
-    rootPassword: ${MONGODB_PASSWORD}
+    rootUser: "${MONGODB_USERNAME}"
+    rootPassword: "${MONGODB_PASSWORD}"
   persistence:
     size: 1Gi
   port: 27017
@@ -98,7 +98,7 @@ ingress:
 
 email:
   smtp:
-    server: ${SMTP_SERVER}
-    port: ${SMTP_PORT}
-    username: ${SMTP_USERNAME}
-    password: ${SMTP_PASSWORD}
+    server: "${SMTP_SERVER}"
+    port: "${SMTP_PORT}"
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
