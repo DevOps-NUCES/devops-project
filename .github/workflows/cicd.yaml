@@ -204,10 +204,6 @@ jobs:
           curl -ksSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           chmod +x argocd
           sudo mv ./argocd /usr/local/bin/argocd
-<<<<<<< HEAD
-=======
-
->>>>>>> main
       - name: ArgoCD Cli login
         shell: bash
         run: |          
@@ -219,11 +215,7 @@ jobs:
       
       - name: Update values.yaml in ArgoCD
         shell: bash
-<<<<<<< HEAD
         run: argocd app set purely --values-literal-file charts/purely/values.yaml --debug 
-=======
-        run: argocd app set purely --values-literal-file charts/purely/values.yaml 
->>>>>>> main
         # run: argocd app set purely --values-literal-file charts/purely/values.yaml --path charts/purely --repo ${{ secrets.ARGOCD_REPO_URL }} --revision gitops --dest-namespace purely --dest-server https://kubernetes.default.svc
           
       - name: ArgoCD App Sync
