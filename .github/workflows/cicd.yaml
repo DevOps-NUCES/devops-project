@@ -195,43 +195,34 @@ jobs:
             echo "Failed to get token"
             exit 1
           fi
-          
+        
           echo "Fetching secrets..."
-          # Create env file for secrets using direct command substitution
-          cat > .env << EOL
-          MONGODB_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          MONGODB_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          SMTP_SERVER=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_SERVER:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          SMTP_PORT=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PORT:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          SMTP_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          SMTP_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.value)
-          EOL
+          MONGODB_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/MONGODB_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          MONGODB_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/MONGODB_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_SERVER=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_SERVER:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PORT=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_PORT:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+
           
-          # Verify each secret was retrieved
-          if ! grep -q "MONGODB_USERNAME=" .env || ! grep -q "MONGODB_PASSWORD=" .env || \
-             ! grep -q "SMTP_SERVER=" .env || ! grep -q "SMTP_PORT=" .env || \
-             ! grep -q "SMTP_USERNAME=" .env || ! grep -q "SMTP_PASSWORD=" .env; then
+          # Verify all variables are set
+          if [ -z "${MONGODB_USERNAME}" ] || [ -z "${MONGODB_PASSWORD}" ] || \
+             [ -z "${SMTP_SERVER}" ] || [ -z "${SMTP_PORT}" ] || \
+             [ -z "${SMTP_USERNAME}" ] || [ -z "${SMTP_PASSWORD}" ]; then
             echo "Error: One or more secrets could not be retrieved"
-            rm -f .env
             exit 1
           fi
           
-          # Source the environment file
-          set -a
-          source .env
-          set +a
-          
           echo "Rendering values.yaml..."
           envsubst < values.template.yml > values.yaml
-          
-          # Clean up
-          rm -f .env
           
           # Verify the output
           if [ ! -s values.yaml ]; then
             echo "Error: values.yaml is empty or was not created"
             exit 1
           fi
+          
+          echo "Successfully rendered values.yaml"
   
 
       - name: Install ArgoCD CLI
