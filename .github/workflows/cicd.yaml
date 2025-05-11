@@ -127,7 +127,7 @@ jobs:
   cd:
     name: Deploy Application using ArgoCD
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
@@ -197,12 +197,12 @@ jobs:
           fi
         
           echo "Fetching secrets..."
-          MONGODB_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/MONGODB_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
-          MONGODB_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/MONGODB_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
-          SMTP_SERVER=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_SERVER:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
-          SMTP_PORT=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_PORT:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
-          SMTP_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
-          SMTP_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/purely/secrets/SMTP_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          MONGODB_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          MONGODB_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/MONGODB_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_SERVER=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_SERVER:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PORT=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PORT:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_USERNAME=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_USERNAME:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
+          SMTP_PASSWORD=$(curl --fail --silent --location "https://api.cloud.hashicorp.com/secrets/2023-11-28/organizations/${HCP_ORG}/projects/${HCP_PROJECT}/apps/${HCP_APP}/secrets/SMTP_PASSWORD:open" --header "Authorization: Bearer ${TOKEN}" | jq -r .secret.static_version.value)
 
           
           # Verify all variables are set
