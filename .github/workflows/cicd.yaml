@@ -203,50 +203,30 @@ jobs:
           envsubst < values.template.yml > values.yaml
   
 
-      - name: Read and escape values.yaml
-        id: read_values
+      - name: Install ArgoCD CLI
+        shell: bash
         run: |
-          ESCAPED=$(jq -Rs . < charts/purely/values.yaml)
-          echo "values=${ESCAPED}" >> $GITHUB_OUTPUT
-  
-      - name: Patch Argo CD app and sync
-        env:
-          ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
-          ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
-          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
-          VALUES: ${{ steps.read_values.outputs.values }}
-        run: |
-          echo "🔐 Getting Argo CD token..."
-          TOKEN=$(curl -s -k -X POST "$ARGOCD_URL/api/v1/session" \
-            -H "Content-Type: application/json" \
-            -d "{\"username\":\"$ARGOCD_USERNAME\",\"password\":\"$ARGOCD_PASSWORD\"}" | jq -r .token)
+          curl -ksSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv ./argocd /usr/local/bin/argocd
 
-          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-            echo "❌ Failed to get ArgoCD token"
-            exit 1
-          fi
-
-          echo "🛠️ Patching Helm values inline..."
-          curl -s -k -X PATCH "$ARGOCD_URL/api/v1/applications/purely" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"spec\": {
-                \"source\": {
-                  \"helm\": {
-                    \"values\": $VALUES
-                  }
-                }
-              }
-            }"
-
-          echo "🔄 Syncing application..."
-          curl -s -k -X POST "$ARGOCD_URL/api/v1/applications/purely/sync" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/json"
-
-          echo "✅ Sync triggered successfully."
-
+      - name: ArgoCD Cli login
+        shell: bash
+        run: |          
+          argocd login ${{secrets.ARGOCD_URL}} \
+            --insecure  \
+            --grpc-web \
+            --username ${{ secrets.ARGOCD_USERNAME }} \
+            --password  ${{ secrets.ARGOCD_PASSWORD }}
+      
+      - name: Update values.yaml in ArgoCD
+        shell: bash
+        run: argocd app set purely --values-literal-file charts/purely/values.yaml 
+        # run: argocd app set purely --values-literal-file charts/purely/values.yaml --path charts/purely --repo ${{ secrets.ARGOCD_REPO_URL }} --revision gitops --dest-namespace purely --dest-server https://kubernetes.default.svc
+          
+      - name: ArgoCD App Sync
+        shell: bash
+        run: argocd app sync purely
  
 
 
