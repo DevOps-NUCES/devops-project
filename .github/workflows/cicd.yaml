@@ -2,7 +2,7 @@ name: Microservices CI/CD
 on:
   push:
     branches:
-      - testing
+      - main
     paths:
       - frontend/**
       - microservice-backend/**
@@ -20,7 +20,7 @@ jobs:
       - uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: testing
+          base: main
           filters: |
             frontend:
               - 'frontend/**'
@@ -177,7 +177,7 @@ jobs:
         run: |
           cd charts/purely
           echo "🔐 Installing envsubst..."
-          apt-get update && apt-get install -y gettext
+          sudo apt-get update && sudo apt-get install -y gettext
           echo "🔐 Getting HCP API token..."
           HCP_API_TOKEN=$(curl --silent --location "https://auth.idp.hashicorp.com/oauth2/token" \
             --header "Content-Type: application/x-www-form-urlencoded" \
