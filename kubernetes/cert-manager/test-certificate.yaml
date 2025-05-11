@@ -1,0 +1,15 @@
+# test-certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-cert
+  namespace: default
+spec:
+  commonName: purely.com
+  secretName: purely-cert-tls
+  duration: 24h
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - purely.com

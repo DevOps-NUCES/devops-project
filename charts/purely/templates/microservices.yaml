@@ -1,0 +1,74 @@
+{{- range $name, $config := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}-service
+  namespace: {{ $.Values.namespace }}
+  labels:
+    {{- include "purely.labels" (dict "name" (printf "%s-service" $name)) | nindent 4 }}
+spec:
+  replicas: {{ $config.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $name }}-service
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}-service
+    spec:
+      containers:
+        - name: {{ $name }}-service
+          image: {{ $.Values.global.registry }}/{{ $.Values.global.repository }}/{{ $name }}-service:{{ default $.Values.global.defaultImageTag $config.imageTag }}
+          ports:
+            - containerPort: {{ $config.port }}
+          env:
+            - name: {{ upper $name }}_SERVICE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: {{ upper $name }}_SERVICE_PORT
+            {{- include "purely.commonEnv" . | nindent 12 }}
+            - name: SERVICE_REGISTRY_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: purely-config
+                  key: {{ upper $name }}_SERVICE_HOSTNAME
+            {{- if eq $name "notification" }}
+            - name: SMTP_SERVER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: SMTP_SERVER_URL
+            - name: SMTP_SERVER_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: SMTP_SERVER_PORT
+            - name: EMAIL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: EMAIL_USERNAME
+            - name: EMAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: email-secret
+                  key: EMAIL_PASSWORD
+            {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-service
+  namespace: {{ $.Values.namespace }}
+  labels:
+    {{- include "purely.labels" (dict "name" (printf "%s-service" $name)) | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $config.port }}
+      targetPort: {{ $config.port }}
+  selector:
+    app: {{ $name }}-service
+---
+{{- end }}

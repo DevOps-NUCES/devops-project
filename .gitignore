@@ -37,3 +37,7 @@ target/
 # KUBERNETES
 /kubernetes/secrets.yaml
 /kubernetes/script-*.sh
+
+#WORKFLOWS
+.secrets
+charts/**/*values*.yaml

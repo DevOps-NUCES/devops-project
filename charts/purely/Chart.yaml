@@ -1,0 +1,8 @@
+apiVersion: v2
+name: purely
+description: A Helm chart for Purely E-commerce application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies: []

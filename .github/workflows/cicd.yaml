@@ -1,0 +1,142 @@
+name: Microservices CI/CD
+on:
+  push:
+    paths:
+      - frontend/**
+      - microservice-backend/**
+      
+jobs:
+  # WAS WORKING WHEN TESTED
+  # detect-changes:
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     services: ${{ steps.set.outputs.services }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - id: set
+  #       run: |
+  #         changed_services=()
+  #         for dir in frontend microservice-backend/*; do
+  #           # Only include if it's a directory and contains a Dockerfile
+  #           if [ ! -d "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
+  #             continue
+  #           fi
+
+  #           # Check if directory has changed
+  #           if git diff --quiet origin/main -- "$dir"; then
+  #             continue
+  #           fi
+
+  #           name=$(basename "$dir")
+  #           changed_services+=("$name")
+  #         done
+
+  #         echo "Detected services: ${changed_services[@]}"
+  #         echo "services=$(printf '%s\n' "${changed_services[@]}" | jq -R . | jq -sc)" >> $GITHUB_OUTPUT
+  
+  # DETECT CHANGES USING dorny/paths-filter
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.filter.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # important for diff to work
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          base: 'main'
+          filters: |
+            frontend:
+              - 'frontend/**'
+            api-gateway:
+              - 'microservice-backend/api-gateway/**'
+            auth-service:
+              - 'microservice-backend/auth-service/**'
+            cart-service:
+              - 'microservice-backend/cart-service/**'
+            category-service:
+              - 'microservice-backend/category-service/**'
+            notification-service:
+              - 'microservice-backend/notification-service/**'
+            order-service:
+              - 'microservice-backend/order-service/**'
+            product-service:
+              - 'microservice-backend/product-service/**'
+            service-registry:
+              - 'microservice-backend/service-registry/**'
+            user-service:
+              - 'microservice-backend/user-service/**'
+    
+              
+  build-and-push:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set Short Commit ID
+        run: echo "COMMIT_ID=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Nexus
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service == 'frontend' && 'frontend' || format('microservice-backend/{0}', matrix.service) }}
+          push: true
+          tags: ${{ secrets.REGISTRY_URL }}${{ secrets.REPOSITORY_NAME }}/${{ matrix.service }}:${{ env.COMMIT_ID }}
+
+
+
+  # update-manifests:
+  #   needs: [build-and-push, detect-changes]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Update Kubernetes YAML
+  #       run: |
+  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
+  #           yml_file="kubernetes/${service}.yml"
+  #           if [ -f "$yml_file" ]; then
+  #             sed -i "s|\(your-nexus\.example\.com/${service}:\).*|\1${{ github.sha::7 }}|g" "$yml_file"
+  #           fi
+  #         done
+
+  #     - name: Commit Changes
+  #       uses: EndBug/add-and-commit@v9
+  #       with:
+  #         message: "Update image tags for changed services - commit ${{ github.sha::7 }}"
+
+  # deploy:
+  #   needs: update-manifests
+  #   runs-on: self-hosted
+  #   steps:
+  #     - name: Install Argo CD CLI
+  #       run: |
+  #         curl -sSL -o argocd https://my-argocd-server.argocd/download/argocd-linux-amd64
+  #         chmod +x argocd && sudo mv argocd /usr/local/bin/argocd
+
+  #     - name: Login and Sync Argo CD
+  #       run: |
+  #         argocd login my-argocd-server.argocd --insecure --grpc-web --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
+  #         for service in $(echo '${{ needs.detect-changes.outputs.services }}' | jq -r '.[]'); do
+  #           argocd app sync ${service}
+  #         done
+

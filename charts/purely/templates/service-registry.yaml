@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-registry
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: service-registry
+spec:
+  selector:
+    matchLabels:
+      app: service-registry
+  replicas: {{ .Values.serviceRegistry.replicas }}
+  template:
+    metadata:
+      labels:
+        app: service-registry
+    spec:
+      containers:
+      - name: service-registry
+        image: {{ .Values.global.registry }}/{{ .Values.global.repository }}/service-registry:{{ default .Values.global.defaultImageTag .Values.serviceRegistry.imageTag }}
+        env:
+          - name: SERVICE_REGISTRY_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: purely-config
+                key: SERVICE_REGISTRY_PORT
+        resources:
+          {{- toYaml .Values.serviceRegistry.resources | nindent 10 }}
+        ports:
+        - containerPort: {{ .Values.serviceRegistry.port }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-registry
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: service-registry
+  ports:
+  - port: {{ .Values.serviceRegistry.port }}
+    targetPort: {{ .Values.serviceRegistry.port }}
