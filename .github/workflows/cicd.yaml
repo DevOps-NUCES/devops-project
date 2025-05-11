@@ -142,15 +142,19 @@ jobs:
           ref: gitops
 
       - name: Install yq
-        run: pip install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Update image tags in values.template.yml
         run: |
           COMMIT_ID=${GITHUB_SHA::7}
-          UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
-          # Create gitops branch
+          # Parse the JSON array into a bash array
+          readarray -t SERVICES < <(echo '${{ needs.detect-changes.outputs.matrix }}' | jq -r '.[]')
+          
           cd charts/purely
-          for svc in $UPDATED_SERVICES; do
+          for svc in "${SERVICES[@]}"; do
+            echo "Updating service: $svc"
             # Remove -service suffix and handle special cases
             case "$svc" in
               frontend)
@@ -215,10 +219,10 @@ jobs:
       
       - name: Update values.yaml in ArgoCD
         shell: bash
-        run: argocd app set purely --values-literal-file charts/purely/values.yaml --debug 
+        run: argocd app set purely --values-literal-file charts/purely/values.yaml  
         # run: argocd app set purely --values-literal-file charts/purely/values.yaml --path charts/purely --repo ${{ secrets.ARGOCD_REPO_URL }} --revision gitops --dest-namespace purely --dest-server https://kubernetes.default.svc
           
       - name: ArgoCD App Sync
         shell: bash
         run: argocd app sync purely
- 
+
