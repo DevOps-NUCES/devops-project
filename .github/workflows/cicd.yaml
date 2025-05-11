@@ -126,7 +126,7 @@ jobs:
   cd:
     name: Deploy Application using ArgoCD
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
@@ -212,13 +212,14 @@ jobs:
 
       - name: ArgoCD App Sync
         shell: bash
-        run: |
+        run: |          
           argocd login ${{secrets.ARGOCD_URL}} \
             --insecure  \
             --grpc-web \
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
-          argocd app set purely --helm-set-file values=charts/purely/values.yaml
+
+          argocd app set purely --helm-set-file --values charts/purely/values.yaml
           argocd app sync purely
  
 
