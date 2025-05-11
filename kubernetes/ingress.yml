@@ -4,10 +4,17 @@ metadata:
   name: frontend-ingress
   namespace: purely
   annotations:
+    # cert-manager.io/cluster-issuer: selfsigned-issuer
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx 
+  # tls:
+  #   - hosts:
+  #       - purely.com
+  #       - eureka.purely.com
+  #       - api.purely.com
+  #     secretName: purely-tls
   rules:
     - host: purely.com 
       http:
