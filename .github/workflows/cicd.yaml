@@ -1,6 +1,8 @@
 name: Microservices CI/CD
 on:
   push:
+    branches:
+      - main
     paths:
       - frontend/**
       - microservice-backend/**
@@ -145,7 +147,7 @@ jobs:
           UPDATED_SERVICES=${{ needs.detect-changes.outputs.matrix }}
 
           # Create gitops branch
-          git checkout gitops
+          git checkout -b gitops origin/gitops
           cd charts/purely
 
           for svc in $UPDATED_SERVICES; do
