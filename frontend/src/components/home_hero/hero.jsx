@@ -14,7 +14,6 @@ function Hero() {
             <h3>We believe in pure, natural goodness - plain and simple. We aim to partner with you on your unique wellness journey while honoring people and the planet in all that we do.</h3>
             <div>
                 <Link to='/products/All'><button>Shop now</button></Link>
-                
             </div>
         </section>
     )
