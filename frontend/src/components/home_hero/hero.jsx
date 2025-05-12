@@ -4,7 +4,7 @@ import './hero.css'
 import {Link} from 'react-router-dom'
 
 function Hero() {
-    ``
+    
     const {user, toggleUser} = useContext(AuthContext)
 
     return(
