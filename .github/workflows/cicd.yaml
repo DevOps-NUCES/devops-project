@@ -126,6 +126,8 @@ jobs:
     name: Deploy Application using ArgoCD
     needs: [detect-changes, build-and-push]
     runs-on: self-hosted
+    permissions:
+      contents: write
     env:
       HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
       HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
