@@ -174,9 +174,12 @@ jobs:
           author_name: github-actions[bot]
           author_email: github-actions[bot]@users.noreply.github.com
           message: "Updates values.template.yml with commit ${{needs.ci.outputs.commit_id}}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
       
+      - name: Debug commit
+        run: |
+          echo "Your github pat is: " ${{ secrets.PAT_TOKEN }}
+
       - name: Install envsubst
         run: |
           echo "Installing envsubst..."
@@ -246,7 +249,7 @@ jobs:
       - name: Install Helm
         shell: bash
         run: |
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/feature/workflows/scripts/get-helm-3 | bash
 
       - name: Debug argocd
         shell: bash
