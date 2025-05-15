@@ -241,11 +241,12 @@ jobs:
             --username ${{ secrets.ARGOCD_USERNAME }} \
             --password  ${{ secrets.ARGOCD_PASSWORD }}
 
-      - name: Install Helm
-        shell: bash
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/feature/workflows/scripts/get-helm-3 | bash
-
+      - name: Helm tool installer
+        uses: Azure/setup-helm@v4.3.0  
+        with:
+          version: 'v3.17.3' 
+        id: install  
+          
       - name: Debug argocd
         shell: bash
         run: |
