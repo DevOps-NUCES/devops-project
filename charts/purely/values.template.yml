@@ -76,7 +76,7 @@ services:
     port: 9000
     replicas: 1
 frontend:
-  imageTag: "e0f6c55"
+  imageTag: "6f10453"
   domain: purely.com
   port: 80
   replicas: 1
